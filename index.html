@@ -1,37 +1,90 @@
-<!-- Adelaide Brunch Spots Map — REAL interactive map (Leaflet + OpenStreetMap CDN) -->
-<!-- Best for: local viewing, or hosting on GitHub Pages / any real website -->
-<div id="brunch-map-wrap" style="max-width:1000px;margin:0 auto;font-family:Segoe UI, sans-serif;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-    <h3 style="margin:0;color:#3b2f63;">🥐 Adelaide Brunch Spots (46)</h3>
-    <div id="brunch-filters" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adelaide Brunch Spots</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  :root {
+    --deep-black:#0A0B0D; --rich-navy:#0F141A; --dark-slate:#16222B; --steel-blue:#1E2F3D;
+    --cyan:#00D4FF; --teal:#00A9C7; --white:#FFFFFF; --mid-grey:#B7BDC3;
+  }
+  body { margin:0; background:var(--deep-black); font-family:'Segoe UI',sans-serif; }
+  #brunch-map-wrap { max-width:1100px; margin:0 auto; padding:20px; }
+  #brunch-map-wrap h3 {
+    margin:0; color:var(--cyan); font-size:20px; font-weight:700;
+    text-shadow:0 0 12px rgba(0,212,255,0.35);
+  }
+  #brunch-filters { display:flex; gap:8px; flex-wrap:wrap; }
+  .brunch-filter-btn {
+    border:1px solid var(--teal); background:transparent; color:var(--teal);
+    padding:5px 12px; border-radius:16px; font-size:12px; cursor:pointer; font-weight:600;
+    transition:all 0.15s ease;
+  }
+  .brunch-filter-btn:hover { background:rgba(0,169,199,0.15); }
+  .brunch-filter-btn.active { background:var(--cyan); border-color:var(--cyan); color:var(--deep-black); }
+  #brunch-map {
+    height:600px; border-radius:12px; overflow:hidden; margin-top:14px;
+    border:1px solid var(--steel-blue); box-shadow:0 0 24px rgba(0,212,255,0.08);
+    background:var(--dark-slate);
+  }
+  /* Map tiles stay in normal bright mode — only the surrounding UI (heading, buttons, popup) uses the dark theme */
+  #brunch-map .leaflet-tile-pane {
+  }
+  #brunch-map-wrap p.attribution { font-size:11px; color:var(--mid-grey); margin-top:8px; opacity:0.7; }
+  .brunch-name-label {
+    background:var(--dark-slate); border:1px solid var(--cyan); color:var(--white);
+    font-weight:600; font-size:11px; padding:3px 8px; border-radius:8px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.5);
+  }
+  .brunch-name-label::before { border-right-color:var(--cyan); }
+  .leaflet-popup-content-wrapper {
+    background:var(--dark-slate); color:var(--white); border-radius:10px;
+    border:1px solid var(--steel-blue);
+  }
+  .leaflet-popup-tip { background:var(--dark-slate); }
+  .leaflet-popup-content strong { color:var(--cyan); font-size:14px; }
+  .leaflet-popup-content .rating-line { color:#E0A33E; font-weight:600; }
+  .leaflet-popup-content .desc-line { color:var(--mid-grey); font-size:12px; }
+  .leaflet-popup-content .addr-line { color:#8A939C; font-size:11px; }
+  .leaflet-popup-close-button { color:var(--mid-grey) !important; }
+  .leaflet-control-zoom a {
+    background:var(--dark-slate) !important; color:var(--cyan) !important;
+    border:1px solid var(--steel-blue) !important;
+  }
+  .leaflet-control-zoom a:hover { background:var(--steel-blue) !important; }
+  .leaflet-control-attribution {
+    background:rgba(10,11,13,0.75) !important; color:var(--mid-grey) !important;
+  }
+  .leaflet-control-attribution a { color:var(--teal) !important; }
+</style>
+</head>
+<body>
+<div id="brunch-map-wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:10px;">
+    <h3>🥐 Adelaide Brunch Spots</h3>
+    <div id="brunch-filters"></div>
   </div>
-  <div id="brunch-map" style="height:600px;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.15);"></div>
-  <p style="font-size:12px;color:#777;margin-top:6px;">Map data © OpenStreetMap contributors. Ratings approximate.</p>
+  <div id="brunch-map"></div>
+  <p class="attribution">Map data © OpenStreetMap contributors.</p>
 </div>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-
-<style>
-  .brunch-name-label {
-    background:#fffdf8; border:1px solid #c96a4e; color:#3b2f63; font-weight:600;
-    font-size:11px; padding:2px 7px; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.15);
-  }
-  .brunch-name-label::before { border-right-color:#c96a4e; }
-</style>
-
 <script>
 (function() {
   var spots = [{"name": "Hello, Stranger", "area": "CBD", "lat": -34.9344669, "lng": 138.599261, "rating": 4.7, "desc": "Asian-fusion brunch, buzzy CBD laneway spot.", "addr": "31 Gilbert St, Adelaide"}, {"name": "Leisurely Coffee", "area": "CBD", "lat": -34.9348806, "lng": 138.5921692, "rating": 4.7, "desc": "Quiet, calm, great pour-overs and Asian-inspired plates.", "addr": "219 Gilbert St, Adelaide"}, {"name": "Loaded Corner Cafe", "area": "CBD", "lat": -34.9236394, "lng": 138.6106406, "rating": 4.6, "desc": "East Terrace corner cafe, big outdoor seating, matcha flights.", "addr": "40 East Terrace, Adelaide"}, {"name": "Part Time Lover", "area": "CBD", "lat": -34.926342, "lng": 138.6006011, "rating": 4.8, "desc": "Funky laneway restaurant, great for a longer brunch/lunch.", "addr": "Paul Kelly Ln, Adelaide"}, {"name": "room 19", "area": "CBD", "lat": -34.9223133, "lng": 138.6090674, "rating": 4.6, "desc": "Rundle St favourite, gorgeous plating, truffle menu.", "addr": "256 Rundle St, Adelaide"}, {"name": "Peter Rabbit Cafe", "area": "CBD", "lat": -34.923215, "lng": 138.5902293, "rating": 4.4, "desc": "Cottage-style cafe, brunch spritz, book ahead on weekends.", "addr": "234-244 Hindley St, Adelaide"}, {"name": "Lenox Avenue", "area": "CBD", "lat": -34.9222866, "lng": 138.6098692, "rating": 4.7, "desc": "Rundle St bar-cafe, hearty share plates and cocktails.", "addr": "278A Rundle St, Adelaide"}, {"name": "Sweet Rose Caf\u00e9", "area": "CBD", "lat": -34.9224974, "lng": 138.6065718, "rating": 4.8, "desc": "Persian-run cafe, homemade soup and Persian breakfast specials.", "addr": "186 Rundle St, Adelaide"}, {"name": "Kafi:n", "area": "CBD", "lat": -34.9224562, "lng": 138.6077371, "rating": 4.3, "desc": "Two-storey Rundle St cafe, quiet upstairs nook, beetroot latte.", "addr": "218 Rundle St, Adelaide"}, {"name": "Little France", "area": "CBD", "lat": -34.9356625, "lng": 138.5969764, "rating": 4.9, "desc": "French-style cafe overlooking South Tce parklands, eggs en cocotte.", "addr": "114 South Tce, Adelaide"}, {"name": "The Flying Fig", "area": "North Adelaide", "lat": -34.9055204, "lng": 138.5905655, "rating": 4.5, "desc": "Jewish-deli inspired brunch, Reuben sandwich is a must.", "addr": "161 Jeffcott St, North Adelaide"}, {"name": "Cottage Kitchen", "area": "North Adelaide", "lat": -34.906374, "lng": 138.5929298, "rating": 4.1, "desc": "Restored cottage, elegant setting, good for groups.", "addr": "198 Tynte St, North Adelaide"}, {"name": "Heat Caf\u00e9", "area": "North Adelaide", "lat": -34.9069003, "lng": 138.6078578, "rating": 4.3, "desc": "Melbourne St cafe, aesthetic plates, breakfast burger.", "addr": "101-103 Melbourne St, North Adelaide"}, {"name": "Golden Hash Cafe", "area": "North Adelaide", "lat": -34.9096938, "lng": 138.6031476, "rating": 4.8, "desc": "Cozy hidden gem, banh-mi and taro latte.", "addr": "257 Melbourne St, North Adelaide"}, {"name": "Two Sisters Cafe", "area": "West", "lat": -34.879114, "lng": 138.5370598, "rating": 4.7, "desc": "Famous for matcha and ube cheesecake.", "addr": "68B Woodville Rd, Woodville South"}, {"name": "Half Cup Cafe", "area": "West", "lat": -34.9327608, "lng": 138.5570502, "rating": 4.8, "desc": "Indian-inspired brunch menu, pay-it-forward concept.", "addr": "231 Sir Donald Bradman Dr, Cowandilla"}, {"name": "Bloom", "area": "West", "lat": -34.9103368, "lng": 138.5734142, "rating": 4.4, "desc": "Light-filled space near Bonython Park, halloumi is a hit.", "addr": "38 Winwood St, Thebarton"}, {"name": "30 Acres Norwood", "area": "Norwood", "lat": -34.9206034, "lng": 138.6403955, "rating": 4.3, "desc": "Warm, homey brunch spot, great for laptops and long catch-ups.", "addr": "233 The Parade, Norwood"}, {"name": "Pav\u00e9 Cafe", "area": "Norwood", "lat": -34.92141, "lng": 138.633881, "rating": 4.7, "desc": "Rustic Parade favourite, chilli crab and truffle Benedict.", "addr": "138b The Parade, Norwood"}, {"name": "Eccomi", "area": "Norwood", "lat": -34.9209855, "lng": 138.6356049, "rating": 4.7, "desc": "High-end Italian cafe, authentic hot chocolate and cannoli.", "addr": "161 The Parade, Norwood"}, {"name": "Mascavado Caf\u00e9 & P\u00e2tisserie", "area": "Norwood", "lat": -34.9221402, "lng": 138.6353245, "rating": 4.2, "desc": "Pastry-forward cafe, stunning cabinet, banana matcha.", "addr": "166 The Parade, Norwood"}, {"name": "33 Chapel", "area": "Norwood", "lat": -34.9163999, "lng": 138.6253035, "rating": 4.6, "desc": "Cottage-feel bakery cafe, gourmet sandwiches.", "addr": "33 Chapel St, Norwood"}, {"name": "Argo on the Parade", "area": "Norwood", "lat": -34.9212444, "lng": 138.6378583, "rating": 4.2, "desc": "Adelaide institution, huge menu, famous waffles.", "addr": "212 The Parade, Norwood"}, {"name": "Hungaria Caf\u00e9", "area": "Norwood", "lat": -34.9221537, "lng": 138.6327258, "rating": 5.0, "desc": "Authentic Hungarian brunch inside the Hungarian Club.", "addr": "82 Osmond Tce, Norwood"}, {"name": "Gather & Grounds Cafe", "area": "Glenelg", "lat": -34.9799135, "lng": 138.5156792, "rating": 4.5, "desc": "Quaint brunch spot, famous taro hotcakes.", "addr": "3 Waterloo St, Glenelg"}, {"name": "Seafaring Fools", "area": "Glenelg", "lat": -34.9883254, "lng": 138.51693, "rating": 4.5, "desc": "Dog-friendly corner cafe, breaky burger and Reuben.", "addr": "60B Broadway, Glenelg South"}, {"name": "Fourth.", "area": "Glenelg", "lat": -34.9804898, "lng": 138.5127983, "rating": 4.3, "desc": "Beachside brunch with a view, big drinks menu.", "addr": "34 Jetty Rd, Glenelg"}, {"name": "Massey Espresso", "area": "Glenelg", "lat": -34.9802283, "lng": 138.5139879, "rating": 4.5, "desc": "Cosy Jetty Rd cafe, best tiramisu in town.", "addr": "3/47 Jetty Rd, Glenelg"}, {"name": "Le Paris Plage", "area": "Glenelg", "lat": -34.9879247, "lng": 138.5181446, "rating": 4.6, "desc": "French-Australian owned, perfect croissants and canel\u00e9s.", "addr": "73 Partridge St, Glenelg South"}, {"name": "Early Bird Eatery", "area": "Unley", "lat": -34.9524571, "lng": 138.607433, "rating": 4.9, "desc": "Beautifully presented pancakes and eggs benny, three ways.", "addr": "234 Unley Rd, Unley"}, {"name": "Unley Social", "area": "Unley", "lat": -34.9501376, "lng": 138.5995279, "rating": 4.9, "desc": "Community favourite, top baristas, run-club regulars.", "addr": "70 King William Rd, Goodwood"}, {"name": "Buttery Unley", "area": "Unley", "lat": -34.9455591, "lng": 138.607263, "rating": 4.5, "desc": "Recently renovated, prawn katsu sando, roomy and bright.", "addr": "69 Unley Rd, Parkside"}, {"name": "Pickle in the Middle", "area": "Unley", "lat": -34.948032, "lng": 138.607121, "rating": 4.5, "desc": "Poke bowls, vegan-friendly, coffee pickup window.", "addr": "134 Unley Rd, Unley"}, {"name": "Bricks & Stones Cafe", "area": "Unley", "lat": -34.950117, "lng": 138.607081, "rating": 4.5, "desc": "Generous portions, gluten/dairy-free friendly.", "addr": "190C Unley Rd, Unley"}, {"name": "Whistle & Flute", "area": "Unley", "lat": -34.9412494, "lng": 138.6057246, "rating": 4.5, "desc": "Indoor-outdoor vibe, halloumi burger, crab chilli scramble.", "addr": "136 Greenhill Rd, Unley"}, {"name": "A Mother's Milk", "area": "Unley", "lat": -34.9478517, "lng": 138.6074053, "rating": 4.4, "desc": "Funky favourite, breakfast burger, cosy corners.", "addr": "105 Unley Rd, Unley"}, {"name": "Bottega Bandito", "area": "Prospect", "lat": -34.888327, "lng": 138.5939922, "rating": 4.4, "desc": "Great sandwiches, fresh croissants, relaxed atmosphere.", "addr": "1/96 Prospect Rd, Prospect"}, {"name": "Caf\u00e9 Komodo", "area": "Prospect", "lat": -34.886973, "lng": 138.5936401, "rating": 4.5, "desc": "Retro garden oasis down a laneway, dog-friendly.", "addr": "118 Prospect Rd, Prospect"}, {"name": "The Upside on Prospect", "area": "Prospect", "lat": -34.8884213, "lng": 138.5943744, "rating": 4.4, "desc": "Pandan waffle Benny, Vietnamese iced coffee with taro foam.", "addr": "1/81 Prospect Rd, Prospect"}, {"name": "Cotto", "area": "Prospect", "lat": -34.887416, "lng": 138.593888, "rating": 4.4, "desc": "Lively brunch spot, waffles with fried chicken.", "addr": "112 Prospect Rd, Prospect"}, {"name": "He Said She Said", "area": "Prospect", "lat": -34.8894382, "lng": 138.594576, "rating": 4.6, "desc": "Pistachio French toast, best mocha in the area.", "addr": "69 Prospect Rd, Prospect"}, {"name": "Little Cafe on Churchill", "area": "Prospect", "lat": -34.8940753, "lng": 138.585247, "rating": 4.7, "desc": "Cosy neighbourhood cafe, great banana bread.", "addr": "46B Churchill Rd, Ovingham"}, {"name": "The Cannoli Box Co.", "area": "Prospect", "lat": -34.8895551, "lng": 138.5849329, "rating": 4.6, "desc": "Italian cafe famous for handmade cannoli.", "addr": "102A Churchill Rd, Prospect"}, {"name": "Homeland Caf\u00e9", "area": "Kent Town", "lat": -34.9204879, "lng": 138.6155299, "rating": 4.9, "desc": "Local gem, perfectly roasted coffee, legendary muffins.", "addr": "1 King William St, Kent Town"}, {"name": "78 On Rundle", "area": "Kent Town", "lat": -34.91954, "lng": 138.6206143, "rating": 4.5, "desc": "Popular brunch and event courtyard space.", "addr": "78 Rundle St, Kent Town"}, {"name": "Tell Henry", "area": "Kent Town", "lat": -34.9204023, "lng": 138.6177778, "rating": 4.5, "desc": "Garden-shaded cafe, great toasties and pastries.", "addr": "39a Rundle St, Kent Town"}];
 
-  var map = L.map('brunch-map').setView([-34.93, 138.605], 12);
+  var map = L.map('brunch-map', { zoomControl: true }).setView([-34.93, 138.605], 12);
+
+  // Same tile source that already worked for you — recoloured via CSS filter above, not a new provider
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
     maxZoom: 19
   }).addTo(map);
 
   var brunchIcon = L.divIcon({
-    html: '<div style="background:#c96a4e;width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.4);"><span style="transform:rotate(45deg);font-size:12px;">🥐</span></div>',
+    html: '<div style="background:#00D4FF;width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(0,212,255,0.7);border:2px solid #0A0B0D;"><span style="transform:rotate(45deg);font-size:12px;">🥐</span></div>',
     className: '', iconSize: [24,24], iconAnchor: [12,24]
   });
 
@@ -39,11 +92,16 @@
   var markers = {};
   var filterDiv = document.getElementById('brunch-filters');
 
+  function setActive(btn) {
+    Array.prototype.forEach.call(filterDiv.children, function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+  }
   function addFilterBtn(label, area) {
     var btn = document.createElement('button');
+    btn.className = 'brunch-filter-btn' + (area === 'All' ? ' active' : '');
     btn.textContent = label;
-    btn.style.cssText = 'border:1px solid #c96a4e;background:#fff;color:#c96a4e;padding:4px 10px;border-radius:16px;font-size:12px;cursor:pointer;';
     btn.onclick = function() {
+      setActive(btn);
       Object.keys(markers).forEach(function(a) {
         markers[a].forEach(function(m) {
           if (area === 'All' || a === area) { if (!map.hasLayer(m)) map.addLayer(m); }
@@ -58,17 +116,22 @@
 
   spots.forEach(function(s) {
     var m = L.marker([s.lat, s.lng], {icon: brunchIcon}).addTo(map);
+    var stars = '★'.repeat(Math.round(s.rating)) + '☆'.repeat(5 - Math.round(s.rating));
     m.bindPopup(
       '<div style="min-width:180px;">' +
       '<strong>' + s.name + '</strong><br/>' +
-      '⭐ ' + s.rating + ' &middot; ' + s.area + '<br/>' +
-      '<span style="font-size:12px;color:#555;">' + s.desc + '</span><br/>' +
-      '<span style="font-size:11px;color:#888;">' + s.addr + '</span>' +
+      '<span class="rating-line">' + stars + ' ' + s.rating.toFixed(1) + '</span> &middot; ' + s.area + '<br/>' +
+      '<span class="desc-line">' + s.desc + '</span><br/>' +
+      '<span class="addr-line">' + s.addr + '</span>' +
       '</div>'
     );
     m.bindTooltip(s.name, { permanent: true, direction: 'right', offset: [8, -10], className: 'brunch-name-label' });
+    m.on('mouseover', function() { this.openPopup(); });
+    m.on('mouseout', function() { this.closePopup(); });
     if (!markers[s.area]) markers[s.area] = [];
     markers[s.area].push(m);
   });
 })();
 </script>
+</body>
+</html>
